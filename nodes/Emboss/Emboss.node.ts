@@ -8,6 +8,7 @@ import type {
 } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
 import { pollUntilReady } from './poll';
+import { contextParts, ContextFile } from './context';
 
 const BASE = 'https://api.getemboss.ai';
 
@@ -79,6 +80,14 @@ export class Emboss implements INodeType {
         let resultUrl = '';
         let json: any = {};
 
+        const readContextFile = async (): Promise<ContextFile | undefined> => {
+          const cprop = this.getNodeParameter('contextBinary', i, '') as string;
+          if (!cprop) return undefined;
+          const meta = items[i].binary?.[cprop];
+          const cbuf = await this.helpers.getBinaryDataBuffer(i, cprop);
+          return { buffer: cbuf, filename: meta?.fileName || 'context', mimeType: meta?.mimeType || 'application/octet-stream' };
+        };
+
         if (operation === 'createForm') {
           const prop = this.getNodeParameter('binaryProperty', i) as string;
           const buf = await this.helpers.getBinaryDataBuffer(i, prop);
@@ -90,6 +99,34 @@ export class Emboss implements INodeType {
           await pollUntilReady(this, `${BASE}/forms/${formId}`);
           resultUrl = `${BASE}/forms/${formId}/fillable`;
           json = { form_id: formId, status: 'ready' };
+        } else if (operation === 'fillFromPdf') {
+          const prop = this.getNodeParameter('binaryProperty', i) as string;
+          const fileBuf = await this.helpers.getBinaryDataBuffer(i, prop);
+          const text = this.getNodeParameter('contextText', i, '') as string;
+          const cf = await readContextFile();
+          const form = new FormData();
+          form.append('file', new Blob([fileBuf as any], { type: 'application/pdf' }), 'form.pdf');
+          for (const p of contextParts(text, cf)) {
+            form.append('context', new Blob([p.value as any], { type: p.contentType }), p.filename);
+          }
+          const created = await this.helpers.httpRequestWithAuthentication.call(this, 'embossApi',
+            { method: 'POST', url: `${BASE}/forms/with-context`, body: form });
+          const ready = await pollUntilReady(this, `${BASE}/forms/with-context/${created.job_id}`);
+          resultUrl = `${BASE}/sessions/${ready.session_id}/pdf`;
+          json = { session_id: ready.session_id, report: ready.report || {} };
+        } else if (operation === 'fillExisting') {
+          const formId = (this.getNodeParameter('formId', i) as any).value as string;
+          const text = this.getNodeParameter('contextText', i, '') as string;
+          const cf = await readContextFile();
+          const form = new FormData();
+          for (const p of contextParts(text, cf)) {
+            form.append('context', new Blob([p.value as any], { type: p.contentType }), p.filename);
+          }
+          const created = await this.helpers.httpRequestWithAuthentication.call(this, 'embossApi',
+            { method: 'POST', url: `${BASE}/forms/${formId}/with-context`, body: form });
+          const ready = await pollUntilReady(this, `${BASE}/forms/with-context/${created.job_id}`);
+          resultUrl = `${BASE}/sessions/${ready.session_id}/pdf`;
+          json = { session_id: ready.session_id, report: ready.report || {} };
         } else {
           throw new NodeOperationError(this.getNode(), `Unsupported operation: ${operation}`);
         }

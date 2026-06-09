@@ -62,3 +62,46 @@ describe('execute: createForm', () => {
     expect(calls.some((c) => c.url.endsWith('/forms/F1/fillable'))).toBe(true);
   });
 });
+
+describe('execute: fills', () => {
+  beforeAll(() => { jest.spyOn(global, 'setTimeout').mockImplementation(((fn: any) => { fn(); return 0 as any; }) as any); });
+  afterAll(() => { (global.setTimeout as any).mockRestore?.(); });
+
+  const fillCtx = (operation: string, params: Record<string, any>) => {
+    const calls: any[] = [];
+    const ctx = {
+      getInputData: () => [{ json: {}, binary: { data: {} } }],
+      getNodeParameter: (n: string, _i?: number, def?: any) => (n === 'operation' ? operation : (params[n] !== undefined ? params[n] : def)),
+      getNode: () => ({ name: 'Emboss' }),
+      continueOnFail: () => false,
+      helpers: {
+        getBinaryDataBuffer: async () => Buffer.from('PDF'),
+        prepareBinaryData: async (buf: Buffer) => ({ data: buf.toString('base64'), mimeType: 'application/pdf' }),
+        httpRequestWithAuthentication: { call: async (_c: any, _cred: any, opts: any) => {
+          calls.push(opts);
+          if (opts.method === 'POST') return { job_id: 'J1', status: 'processing' };
+          if (opts.url.includes('/with-context/J1')) return { status: 'ready', session_id: 'S1' };
+          if (opts.url.endsWith('/sessions/S1/pdf')) return Buffer.from('%PDF-FILLED');
+          return { status: 'ready' };
+        } },
+      },
+    } as any;
+    return { ctx, calls };
+  };
+
+  it('fillFromPdf POSTs /forms/with-context, polls job, fetches session pdf', async () => {
+    const { ctx, calls } = fillCtx('fillFromPdf', { binaryProperty: 'data', contextText: 'hi', contextBinary: '' });
+    const out = await new Emboss().execute.call(ctx);
+    expect(out[0][0].binary!.data).toBeTruthy();
+    expect(out[0][0].json.session_id).toBe('S1');
+    expect(calls.some((c) => c.method === 'POST' && c.url.endsWith('/forms/with-context'))).toBe(true);
+    expect(calls.some((c) => c.url.endsWith('/sessions/S1/pdf'))).toBe(true);
+  });
+
+  it('fillExisting POSTs /forms/{id}/with-context using the resourceLocator value', async () => {
+    const { ctx, calls } = fillCtx('fillExisting', { formId: { value: 'F9' }, contextText: 'hi', contextBinary: '' });
+    const out = await new Emboss().execute.call(ctx);
+    expect(out[0][0].json.session_id).toBe('S1');
+    expect(calls.some((c) => c.method === 'POST' && c.url.endsWith('/forms/F9/with-context'))).toBe(true);
+  });
+});

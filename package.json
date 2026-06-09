@@ -1,11 +1,17 @@
 {
   "name": "n8n-nodes-emboss",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "n8n node for Emboss — create fillable PDFs and fill forms from context.",
   "license": "MIT",
   "author": "Emboss",
   "homepage": "https://getemboss.ai",
-  "keywords": ["n8n-community-node-package", "n8n", "emboss", "pdf", "forms"],
+  "keywords": [
+    "n8n-community-node-package",
+    "n8n",
+    "emboss",
+    "pdf",
+    "forms"
+  ],
   "scripts": {
     "build": "tsc && cp nodes/Emboss/emboss.svg dist/nodes/Emboss/emboss.svg",
     "test": "jest",
@@ -13,10 +19,17 @@
   },
   "n8n": {
     "n8nNodesApiVersion": 1,
-    "credentials": ["dist/credentials/EmbossApi.credentials.js"],
-    "nodes": ["dist/nodes/Emboss/Emboss.node.js"]
+    "credentials": [
+      "dist/credentials/EmbossApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/Emboss/Emboss.node.js"
+    ]
   },
-  "files": ["dist", "LICENSE"],
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
   "devDependencies": {
     "@types/jest": "^29.5.12",
     "@types/node": "^20.12.7",

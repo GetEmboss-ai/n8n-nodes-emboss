@@ -19,9 +19,9 @@ export async function pollUntilReady(
     if (intervalMs > 0) await new Promise((r) => setTimeout(r, intervalMs));
     const payload = await ctx.helpers.httpRequestWithAuthentication.call(ctx, 'embossApi', { url });
     if (payload.status === 'failed') {
-      const e = payload.error || {};
-      throw new NodeOperationError(ctx.getNode(),
-        `Emboss fill failed: ${e.code || 'error'} — ${e.message || 'no detail'}`);
+      const e = payload.error;
+      const detail = typeof e === 'string' ? e : (e && (e.message || e.code)) || 'no detail';
+      throw new NodeOperationError(ctx.getNode(), `Emboss fill failed: ${detail}`);
     }
     if (payload.status === 'ready') return payload;
   }

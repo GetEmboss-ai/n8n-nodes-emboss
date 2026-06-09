@@ -6,7 +6,6 @@
   "author": "Emboss",
   "homepage": "https://getemboss.ai",
   "keywords": ["n8n-community-node-package", "n8n", "emboss", "pdf", "forms"],
-  "main": "index.js",
   "scripts": {
     "build": "tsc && cp nodes/Emboss/emboss.svg dist/nodes/Emboss/emboss.svg",
     "test": "jest",
@@ -17,7 +16,7 @@
     "credentials": ["dist/credentials/EmbossApi.credentials.js"],
     "nodes": ["dist/nodes/Emboss/Emboss.node.js"]
   },
-  "files": ["dist"],
+  "files": ["dist", "LICENSE"],
   "devDependencies": {
     "@types/jest": "^29.5.12",
     "@types/node": "^20.12.7",

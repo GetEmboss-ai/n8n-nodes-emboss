@@ -31,3 +31,34 @@ describe('getForms listSearch', () => {
     ]);
   });
 });
+
+describe('execute: createForm', () => {
+  beforeAll(() => { jest.spyOn(global, 'setTimeout').mockImplementation(((fn: any) => { fn(); return 0 as any; }) as any); });
+  afterAll(() => { (global.setTimeout as any).mockRestore?.(); });
+
+  it('POSTs the file, polls, returns the fillable PDF as binary', async () => {
+    const calls: any[] = [];
+    const node = new Emboss();
+    const ctx = {
+      getInputData: () => [{ json: {}, binary: { data: {} } }],
+      getNodeParameter: (n: string) => (n === 'operation' ? 'createForm' : 'data'),
+      getNode: () => ({ name: 'Emboss' }),
+      continueOnFail: () => false,
+      helpers: {
+        getBinaryDataBuffer: async () => Buffer.from('PDF'),
+        prepareBinaryData: async (buf: Buffer) => ({ data: buf.toString('base64'), mimeType: 'application/pdf' }),
+        httpRequestWithAuthentication: { call: async (_c: any, _cred: any, opts: any) => {
+          calls.push(opts);
+          if (opts.method === 'POST') return { form_id: 'F1', status: 'processing' };
+          if (opts.url.endsWith('/fillable')) return Buffer.from('%PDF-FILLABLE');
+          return { status: 'ready' }; // the poll
+        } },
+      },
+    } as any;
+    const out = await node.execute.call(ctx);
+    expect(out[0][0].binary!.data).toBeTruthy();
+    expect(out[0][0].json.form_id).toBe('F1');
+    expect(calls.some((c) => c.method === 'POST' && c.url.endsWith('/forms'))).toBe(true);
+    expect(calls.some((c) => c.url.endsWith('/forms/F1/fillable'))).toBe(true);
+  });
+});

@@ -6,6 +6,8 @@ import type {
   INodeType,
   INodeTypeDescription,
 } from 'n8n-workflow';
+import { NodeOperationError } from 'n8n-workflow';
+import { pollUntilReady } from './poll';
 
 const BASE = 'https://api.getemboss.ai';
 
@@ -69,6 +71,38 @@ export class Emboss implements INodeType {
   };
 
   async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
-    return [[]]; // per-operation bodies added in Tasks 6-7
+    const items = this.getInputData();
+    const out: INodeExecutionData[] = [];
+    for (let i = 0; i < items.length; i++) {
+      try {
+        const operation = this.getNodeParameter('operation', i) as string;
+        let resultUrl = '';
+        let json: any = {};
+
+        if (operation === 'createForm') {
+          const prop = this.getNodeParameter('binaryProperty', i) as string;
+          const buf = await this.helpers.getBinaryDataBuffer(i, prop);
+          const form = new FormData();
+          form.append('file', new Blob([buf as any], { type: 'application/pdf' }), 'form.pdf');
+          const created = await this.helpers.httpRequestWithAuthentication.call(this, 'embossApi',
+            { method: 'POST', url: `${BASE}/forms`, body: form });
+          const formId = created.form_id;
+          await pollUntilReady(this, `${BASE}/forms/${formId}`);
+          resultUrl = `${BASE}/forms/${formId}/fillable`;
+          json = { form_id: formId, status: 'ready' };
+        } else {
+          throw new NodeOperationError(this.getNode(), `Unsupported operation: ${operation}`);
+        }
+
+        const pdf = await this.helpers.httpRequestWithAuthentication.call(this, 'embossApi',
+          { url: resultUrl, encoding: 'arraybuffer' });
+        const binary = await this.helpers.prepareBinaryData(Buffer.from(pdf), 'emboss.pdf', 'application/pdf');
+        out.push({ json, binary: { data: binary }, pairedItem: { item: i } });
+      } catch (err) {
+        if (this.continueOnFail()) { out.push({ json: { error: (err as Error).message }, pairedItem: { item: i } }); continue; }
+        throw err;
+      }
+    }
+    return [out];
   }
 }

@@ -8,7 +8,7 @@
   "keywords": ["n8n-community-node-package", "n8n", "emboss", "pdf", "forms"],
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp nodes/Emboss/emboss.svg dist/nodes/Emboss/emboss.svg",
     "test": "jest",
     "lint": "eslint nodes credentials --ext .ts"
   },

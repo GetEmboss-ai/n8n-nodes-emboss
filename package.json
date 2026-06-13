@@ -1,9 +1,9 @@
 {
   "name": "n8n-nodes-emboss",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "n8n node for Emboss — create fillable PDFs and fill forms from context.",
   "license": "MIT",
-  "author": "Emboss",
+  "author": "Emboss <edwin@getemboss.ai>",
   "homepage": "https://getemboss.ai",
   "repository": {
     "type": "git",

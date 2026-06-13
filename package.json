@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-emboss",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "n8n node for Emboss — create fillable PDFs and fill forms from context.",
   "license": "MIT",
   "author": "Emboss",
@@ -37,6 +37,9 @@
     "dist",
     "LICENSE"
   ],
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  },
   "devDependencies": {
     "@types/jest": "^29.5.12",
     "@types/node": "^20.12.7",

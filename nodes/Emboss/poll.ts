@@ -1,5 +1,5 @@
 import type { IExecuteFunctions } from 'n8n-workflow';
-import { NodeOperationError } from 'n8n-workflow';
+import { NodeOperationError, sleep } from 'n8n-workflow';
 
 export interface PollOpts {
   intervalMs?: number;
@@ -16,7 +16,7 @@ export async function pollUntilReady(
   const intervalMs = opts.intervalMs ?? 3000;
   const maxAttempts = opts.maxAttempts ?? 100; // 3s * 100 ≈ 5 min
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    if (intervalMs > 0) await new Promise((r) => setTimeout(r, intervalMs));
+    if (intervalMs > 0) await sleep(intervalMs);
     const payload = await ctx.helpers.httpRequestWithAuthentication.call(ctx, 'embossApi', { url });
     if (payload.status === 'failed') {
       const e = payload.error;

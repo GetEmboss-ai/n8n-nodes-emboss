@@ -5,6 +5,13 @@
   "license": "MIT",
   "author": "Emboss",
   "homepage": "https://getemboss.ai",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GetEmboss-ai/n8n-nodes-emboss.git"
+  },
+  "bugs": {
+    "url": "https://github.com/GetEmboss-ai/n8n-nodes-emboss/issues"
+  },
   "keywords": [
     "n8n-community-node-package",
     "n8n",

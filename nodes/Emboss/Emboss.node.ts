@@ -5,8 +5,9 @@ import type {
   INodeListSearchResult,
   INodeType,
   INodeTypeDescription,
+  JsonObject,
 } from 'n8n-workflow';
-import { NodeOperationError } from 'n8n-workflow';
+import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 import { pollUntilReady } from './poll';
 import { contextParts, ContextFile } from './context';
 
@@ -137,7 +138,11 @@ export class Emboss implements INodeType {
         out.push({ json, binary: { data: binary }, pairedItem: { item: i } });
       } catch (err) {
         if (this.continueOnFail()) { out.push({ json: { error: (err as Error).message }, pairedItem: { item: i } }); continue; }
-        throw err;
+        // NodeOperationError is already a typed n8n error (our own throws);
+        // wrap everything else (HTTP errors from the Emboss API) in
+        // NodeApiError so the n8n UI shows status/response context.
+        if (err instanceof NodeOperationError) { throw err; }
+        throw new NodeApiError(this.getNode(), err as JsonObject);
       }
     }
     return [out];
